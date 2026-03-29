@@ -1,6 +1,36 @@
 # Denx
 
-Denx is a local-first knowledge capture system that accepts voice or text, processes it on your Mac, and writes structured markdown into an Obsidian-compatible vault.
+Denx turns raw voice and text into a living personal knowledge system.
+
+Press one button on your iPhone, speak naturally, and Denx does the rest:
+
+- captures the audio
+- transcribes it locally on your Mac
+- routes it through a Codex scribe
+- updates a structured Obsidian-compatible vault
+- grows durable memory for projects, people, systems, and recurring ideas
+- sends confirmation back through OpenClaw
+
+The point is not to collect more voice memos. The point is to turn fleeting thoughts into a knowledge graph that keeps getting smarter, more connected, and more useful over time.
+
+## Why Denx Is Different
+
+Most voice capture tools stop at transcription. Denx does not.
+
+Denx is built to act like a local knowledge operator:
+
+- not a transcript dump
+- not a thin note-taking shortcut
+- not a cloud-only chatbot with no durable memory
+
+It is a local-first scribe system that can:
+
+- turn spoken or typed input into notes, tasks, decisions, reminders, and project updates
+- strengthen canonical memory for the people, systems, and projects that matter repeatedly
+- keep raw provenance without letting transcripts become the main artifact
+- sync the resulting vault privately across devices
+
+If you want an external brain that lives in markdown, works with Obsidian, and is powered by local tools on your own machine, this is what Denx is for.
 
 ## Repository Boundary
 
