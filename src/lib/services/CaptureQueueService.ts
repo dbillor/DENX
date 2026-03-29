@@ -143,7 +143,7 @@ export class CaptureQueueService {
   private markCompleted(status: CaptureJobStatus, result: CaptureResult): void {
     status.state = 'completed';
     status.completedAt = new Date().toISOString();
-    status.notePath = result.primaryNote.path;
+    status.notePath = result.primaryNote?.path;
     status.taskPaths = result.taskNotes.map((note) => note.path);
     status.transcriptPath = result.transcriptPath;
     status.audioPath = result.audioPath;

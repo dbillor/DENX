@@ -1,26 +1,17 @@
 import type { ContextNote } from '../vault/VaultStore.js';
-import type { AskPlan, CapturePlan, OrganizePlan } from './schemas.js';
+import type { ResearchMemo, ScribePlan, SourceRef } from './schemas.js';
 
-export interface CaptureAgentInput {
-  transcript: string;
-  capturedAt: string;
-  sourceKind: 'voice' | 'text';
+export interface ScribeTaskInput {
+  mode: 'capture' | 'task' | 'maintenance' | 'document';
+  requestText: string;
+  capturedAt?: string;
+  sourceKind?: 'voice' | 'text' | 'document';
   device?: string;
-  contextNotes: ContextNote[];
-}
-
-export interface AskAgentInput {
-  question: string;
-  contextNotes: ContextNote[];
-}
-
-export interface OrganizeAgentInput {
-  notes: ContextNote[];
+  sourceRefs: SourceRef[];
+  contextPack: ContextNote[];
+  researchMemos: ResearchMemo[];
 }
 
 export interface KnowledgeAgentClient {
-  shapeCapture(input: CaptureAgentInput): Promise<CapturePlan>;
-  answerAsk(input: AskAgentInput): Promise<AskPlan>;
-  organize(input: OrganizeAgentInput): Promise<OrganizePlan>;
+  runScribeTask(input: ScribeTaskInput): Promise<ScribePlan>;
 }
-

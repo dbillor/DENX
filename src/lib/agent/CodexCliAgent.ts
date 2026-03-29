@@ -7,14 +7,8 @@ import { promisify } from 'node:util';
 import { z } from 'zod';
 
 import type { AppConfig } from '../config.js';
-import type { AskPlan, CapturePlan, OrganizePlan } from './schemas.js';
-import { askPlanSchema, capturePlanSchema, organizePlanSchema } from './schemas.js';
-import type {
-  AskAgentInput,
-  CaptureAgentInput,
-  KnowledgeAgentClient,
-  OrganizeAgentInput,
-} from './types.js';
+import { scribePlanSchema, type ScribePlan } from './schemas.js';
+import type { KnowledgeAgentClient, ScribeTaskInput } from './types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -25,55 +19,26 @@ export class CodexCliAgent implements KnowledgeAgentClient {
     this.promptPath = path.join(this.config.workspaceRoot, 'prompts', 'personal-knowledge-codex.md');
   }
 
-  async shapeCapture(input: CaptureAgentInput): Promise<CapturePlan> {
+  async runScribeTask(input: ScribeTaskInput): Promise<ScribePlan> {
     return this.runStructuredTask(
-      capturePlanSchema,
-      'shape_capture',
+      scribePlanSchema,
+      'scribe_plan',
       [
-        'Classify the transcript and produce a durable markdown note plan.',
-        'Do not write files directly. Only return JSON that matches the schema.',
-        'Treat the supplied context notes as the current vault state.',
+        'Act as the Denx scribe.',
+        'Create one coherent plan for durable knowledge changes.',
+        'Research inputs are advisory only; they cannot mutate the vault.',
+        'Return only JSON that matches the schema.',
       ].join(' '),
       {
-        task: 'shape_capture',
+        task: 'denx_scribe',
+        mode: input.mode,
+        request_text: input.requestText,
         captured_at: input.capturedAt,
         source_kind: input.sourceKind,
         device: input.device,
-        transcript: input.transcript,
-        known_context_notes: input.contextNotes,
-      },
-    );
-  }
-
-  async answerAsk(input: AskAgentInput): Promise<AskPlan> {
-    return this.runStructuredTask(
-      askPlanSchema,
-      'ask_plan',
-      [
-        'Answer the user from vault context and propose additive vault actions when useful.',
-        'Only return JSON that matches the schema.',
-        'Prefer append, link, create_note, create_task, and status updates over broad rewrites.',
-      ].join(' '),
-      {
-        task: 'answer_and_update_vault',
-        user_question: input.question,
-        vault_context: input.contextNotes,
-      },
-    );
-  }
-
-  async organize(input: OrganizeAgentInput): Promise<OrganizePlan> {
-    return this.runStructuredTask(
-      organizePlanSchema,
-      'organize_plan',
-      [
-        'Review the supplied notes and propose a small set of high-value organizing actions.',
-        'Only return JSON that matches the schema.',
-        'Be conservative and additive.',
-      ].join(' '),
-      {
-        task: 'organize_recent_notes',
-        notes: input.notes,
+        source_refs: input.sourceRefs,
+        context_pack: input.contextPack,
+        research_memos: input.researchMemos,
       },
     );
   }
@@ -145,9 +110,9 @@ export class CodexCliAgent implements KnowledgeAgentClient {
       return await fs.readFile(this.promptPath, 'utf8');
     } catch {
       return [
-        'You are my local personal knowledge operator.',
-        'Turn captures into durable markdown notes and actionable vault changes.',
-        'Search for relationships, avoid duplicates, and prefer clean Obsidian-style markdown.',
+        'You are the Denx Codex Scribe.',
+        'Turn tasks and captures into durable knowledge actions.',
+        'You are the only writer; any research inputs are read-only.',
       ].join(' ');
     }
   }

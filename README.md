@@ -50,17 +50,21 @@ The default `.gitignore` is configured so those local assets stay off GitHub.
 ## What It Does
 
 - Accepts voice or text captures through explicit HTTP endpoints.
+- Accepts Markdown, text, and PDF documents through `denx ingest doc`.
 - Returns immediately from the HTTP endpoint and processes captures in the background.
-- Supports two capture paths:
+- Supports three ingress paths:
   - Raw audio upload -> local Whisper-class transcription on your Mac.
   - Direct text ingress -> local Codex CLI on your Mac.
-- Uses a high-agency agent to classify each input as a `note`, `task`, `decision`, `reminder`, or `project-update`.
-- Writes durable markdown into an Obsidian-style vault instead of dumping raw transcripts into one folder.
+  - Local document ingest -> provenance copy + extraction -> Codex scribe.
+- Uses a prompt-driven Codex scribe to decide whether to create, update, merge, link, archive, or leave the graph unchanged.
+- Routes durable writes through a Denx knowledge CLI and plan-driven commit path instead of ad hoc service-level file mutations.
+- Writes durable markdown into an Obsidian-style vault instead of dumping raw transcripts or documents into one folder.
 - Creates links, tags, related notes, backlinks, daily-log entries, and follow-up task notes automatically.
 - Can strengthen canonical notes for people, projects, systems, and topics when a capture adds durable context.
 - Can append durable owner-level memory into `_memory/` for identity, preferences, principles, and open questions.
+- Preserves raw provenance for transcripts, audio, imported documents, and document extractions under `_system/`.
 - Sends iMessage receipt/completion/failure notifications through OpenClaw.
-- Exposes a CLI for capture, search, natural-language ask/update, and organization passes.
+- Exposes a CLI for capture, task-driven knowledge work, maintenance, document ingestion, and low-level graph operations.
 
 ## Current Status
 
@@ -71,8 +75,10 @@ This is the current working architecture in this repository:
 - The server accepts the request immediately with `202 Accepted`.
 - A local background queue processes the capture on the Mac.
 - A warm resident `faster-whisper` worker keeps the transcription model loaded in memory.
-- Local Codex shapes the transcript into durable markdown.
-- The vault is updated directly on disk.
+- Local Codex runs as a prompt-driven Denx scribe.
+- The scribe returns a structured change plan.
+- A Denx knowledge CLI validates and commits the plan into the vault.
+- Documents can also be ingested from Markdown, text, or PDF files through the same scribe path.
 - OpenClaw sends iMessage updates back to the owner.
 
 Current local defaults:
@@ -116,17 +122,19 @@ flowchart LR
   B --> D["Background capture queue"]
   B2 --> D
   D --> E["Warm local Whisper worker"]
-  E --> F["Local Codex knowledge agent"]
-  F --> G["Vault writer"]
-  G --> H["Obsidian markdown vault"]
-  D --> I["OpenClaw receipt / completion / failure iMessages"]
+  E --> F["Local Codex scribe"]
+  A3["Document ingest"] --> F
+  F --> G["Denx knowledge CLI"]
+  G --> H["Atomic vault commit"]
+  H --> I["Obsidian markdown vault"]
+  D --> J["OpenClaw receipt / completion / failure iMessages"]
 ```
 
 ### Ownership Split
 
 - Whisper owns speech-to-text.
-- Codex owns vault reasoning and note shaping.
-- The vault writer owns markdown persistence.
+- Codex owns graph reasoning and scribe planning.
+- The Denx knowledge CLI owns mechanical commit execution.
 - OpenClaw owns communication back to the user.
 
 This split is intentional. Only one component should write the vault. OpenClaw is the communication and orchestration surface, not the primary markdown editor.
@@ -138,6 +146,7 @@ vault/
   daily/
   decisions/
   notes/
+    documents/
   projects/
     updates/
   reminders/
@@ -149,7 +158,10 @@ vault/
     topics/
   _system/
     audio/
+    extractions/
+    inbox/
     index.json
+    sources/
     transcripts/
 ```
 
@@ -205,12 +217,20 @@ Run through `npx tsx src/cli/index.ts <command>` during development, or alias it
   Local smoke test for the raw audio path using local Whisper transcription.
 - `capture --text "Remember to message Sam about the Atlas launch plan"`
   Sends a text capture through the same shaping pipeline using local Codex if available.
+- `task "Prepare for 1:1 with Jordan about Atlas"`
+  Runs a task-driven knowledge request through the v3 scribe path.
+- `maintain --scope "recent notes and people hubs"`
+  Runs maintenance work through the v3 scribe path.
+- `ingest doc /path/to/brief.pdf`
+  Copies a document into Denx provenance, extracts text, and lets the scribe update the graph.
 - `search "atlas launch"`
   Searches the local markdown graph index.
 - `ask "What decisions have I made about Atlas this week?"`
-  Reads the vault, answers in natural language, and applies additive note updates when helpful.
+  Reads the vault, answers in natural language, and commits graph updates through the same scribe path when helpful.
 - `organize --limit 12`
-  Runs an organization pass across recent notes to tighten links and summaries.
+  Compatibility wrapper over the maintenance scribe path.
+- `kb ...`
+  Low-level graph operations such as `search`, `read`, `related`, `diff-plan`, `commit-plan`, `merge-notes`, and provenance-aware memory/document recording.
 
 ## Capture Flow
 
@@ -225,13 +245,15 @@ flowchart LR
   D --> E["Raw audio upload"]
   D --> F["Text fallback"]
   E --> G["Warm local Whisper transcription"]
-  F --> H["Local Codex CLI agent"]
+  F --> H["Local Codex scribe"]
   G --> H
-  H --> I["Vault writer"]
-  I --> J["Markdown notes + tasks"]
-  I --> K["Backlinks + graph index"]
-  D --> L["OpenClaw iMessage notifications"]
-  M["CLI ask / organize"] --> I
+  N["Document ingest"] --> H
+  H --> I["Scribe plan"]
+  I --> J["Denx knowledge CLI"]
+  J --> K["Markdown notes + graph updates"]
+  K --> L["Backlinks + graph index"]
+  D --> M["OpenClaw iMessage notifications"]
+  O["CLI task / ask / maintain"] --> H
 ```
 
 ## iPhone Shortcut

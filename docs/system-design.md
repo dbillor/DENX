@@ -8,13 +8,13 @@ Related agent behavior policy:
 
 ## Goal
 
-Create a local-first personal knowledge system where a single action on iPhone captures spoken input, transcribes it, classifies it, stores it as durable markdown, and keeps the resulting vault available across devices.
+Create a local-first personal knowledge system where a single action on iPhone or a local task/document request flows through a prompt-driven scribe, updates durable markdown, and keeps the resulting vault available across devices.
 
 ## Current Working System
 
 The implemented system is:
 
-`iPhone Shortcut -> HTTP capture endpoint -> background queue -> warm Whisper worker -> local Codex knowledge agent -> markdown vault -> OpenClaw notifications -> Obsidian Sync`
+`voice/text/document input -> context pack -> local Codex scribe -> Denx knowledge CLI -> markdown vault -> OpenClaw notifications -> Obsidian Sync`
 
 This is running locally on the Mac and writes directly into the Obsidian-compatible vault at `vault/`.
 
@@ -23,8 +23,10 @@ This is running locally on the Mac and writes directly into the Obsidian-compati
 - Local vault files are the source of truth.
 - Only one subsystem should write the vault.
 - Raw transcripts are retained, but they are not the main knowledge surface.
+- Raw source documents and extracted text are retained as provenance.
 - OpenClaw handles communication and later orchestration, not primary markdown editing.
 - The iPhone stays simple and acts only as a capture client.
+- Only one writer commits durable graph changes.
 
 ## Component Ownership
 
@@ -35,6 +37,7 @@ This is running locally on the Mac and writes directly into the Obsidian-compati
 - Uses a bearer token for authorization.
 - Can be bound to the Action Button.
 - Other local tools or agents can send direct text to `POST /api/captures/text`.
+- The external phone UX stays unchanged in v3 Phase 1.
 
 ### Capture Server
 
@@ -62,20 +65,42 @@ This is running locally on the Mac and writes directly into the Obsidian-compati
 
 - Implemented through local Codex CLI in [`src/lib/agent/CodexCliAgent.ts`](../src/lib/agent/CodexCliAgent.ts).
 - Guided by [`prompts/personal-knowledge-codex.md`](../prompts/personal-knowledge-codex.md).
-- Interprets captures as one of:
-  - `note`
-  - `task`
-  - `decision`
-  - `reminder`
-  - `project-update`
-- Produces structured plans for vault updates instead of writing raw transcripts as knowledge notes.
+- Uses one unified `runScribeTask(...)` contract for:
+  - capture work
+  - task-driven knowledge work
+  - maintenance work
+  - document ingestion work
+- Produces a single scribe plan with graph actions instead of separate capture/ask/organize plan types.
+
+### Denx Knowledge CLI
+
+- Implemented in [`src/lib/services/KnowledgeCliService.ts`](../src/lib/services/KnowledgeCliService.ts).
+- Owns the mechanical action surface for the scribe:
+  - search
+  - read
+  - related
+  - diff-plan
+  - commit-plan
+  - create/update/append/link
+  - merge/archive
+  - memory/document/transcript recording
+- Enforces provenance-safe validation so `_system` provenance is not mutated by graph actions.
 
 ### Vault Writer
 
-- Implemented primarily in [`src/lib/services/IngestionService.ts`](../src/lib/services/IngestionService.ts) and [`src/lib/vault/VaultStore.ts`](../src/lib/vault/VaultStore.ts).
-- Writes markdown directly to disk.
-- Maintains frontmatter, tags, related-note sections, backlinks, daily logs, and transcript references.
-- Keeps `_system/transcripts/` and `_system/audio/` as machine-facing provenance, not the main knowledge graph.
+- Implemented primarily in [`src/lib/vault/VaultStore.ts`](../src/lib/vault/VaultStore.ts).
+- Still writes markdown directly to disk.
+- Now sits behind the Denx knowledge CLI for durable graph edits.
+- Maintains frontmatter, tags, related-note sections, backlinks, daily logs, and source references.
+- Keeps `_system/transcripts/`, `_system/audio/`, `_system/sources/`, and `_system/extractions/` as provenance, not the main knowledge graph.
+
+### Document Ingestion
+
+- Implemented in [`src/lib/services/DocumentIngestionService.ts`](../src/lib/services/DocumentIngestionService.ts).
+- Supports Markdown, text, and PDF inputs.
+- Copies source documents into immutable provenance under `_system/sources/docs/`.
+- Writes extraction output under `_system/extractions/docs/`.
+- Sends extracted content through the same scribe path used by voice/text/task work.
 
 ### OpenClaw / G-Man
 
@@ -108,12 +133,15 @@ flowchart LR
   D --> E["Store raw audio + metadata"]
   D --> F["Warm faster-whisper worker"]
   F --> G["Transcript"]
-  G --> H["Local Codex knowledge agent"]
-  H --> I["Vault writer"]
-  I --> J["Markdown vault"]
-  D --> K["OpenClaw iMessage receipt"]
-  H --> L["OpenClaw completion or failure"]
-  J --> M["Obsidian Headless Sync"]
+  G --> H["Local Codex scribe"]
+  A3["Document ingest"] --> H
+  A4["Task / maintenance request"] --> H
+  H --> I["Denx knowledge CLI"]
+  I --> J["Vault writer"]
+  J --> K["Markdown vault"]
+  D --> O["OpenClaw iMessage receipt"]
+  I --> L["OpenClaw completion or failure"]
+  K --> M["Obsidian Headless Sync"]
   M --> N["Other devices via Obsidian Sync"]
 ```
 
@@ -124,12 +152,15 @@ The vault currently uses:
 - `daily/`
 - `decisions/`
 - `notes/`
+  - `documents/`
 - `projects/`
 - `projects/updates/`
 - `reminders/`
 - `tasks/`
 - `_memory/`
 - `_system/audio/`
+- `_system/extractions/`
+- `_system/sources/`
 - `_system/transcripts/`
 - `_system/index.json`
 
@@ -143,20 +174,25 @@ Each durable note includes:
 - source transcript reference
 - source audio reference when applicable
 
-In addition to the primary note, the capture pipeline can now:
+In addition to creating or updating the main note, the scribe path can now:
 
 - strengthen related canonical notes for people, projects, systems, and topics
 - append durable owner-level context into `_memory/` when the capture reveals stable identity, preference, principle, or open-question information
+- record document-facing notes from imported sources
+- merge duplicate knowledge notes
+- archive stale knowledge notes without touching provenance
 
 ## Agent Storage Policy
 
 The knowledge agent is now explicitly instructed to:
 
 - preserve durable project, design, decision, and system information
+- preserve relevant people and relationship context as durable memory
 - avoid promoting greetings, banter, and low-context captures into first-class knowledge
-- treat raw audio and transcripts as provenance in `_system`
+- treat raw audio, transcripts, source documents, and extracted text as provenance in `_system`
 - prefer canonical project/system notes over fragmented duplicates
 - turn architectural rules and clarified operating boundaries into decision notes or project updates
+- use one scribe plan contract rather than separate planner types
 
 Full policy:
 
@@ -164,14 +200,15 @@ Full policy:
 
 ## Why Direct File Writes Instead Of Obsidian CLI
 
-Primary write path is direct file editing.
+Primary persistence remains direct file editing.
 
 Reasons:
 
 - markdown on disk is the actual durable asset
 - background automation should not depend on the desktop app being open
 - direct writes are easier to test, diff, and repair
-- the vault writer can enforce stable conventions itself
+- Denx needs graph-aware operations beyond generic app automation
+- a Denx-specific CLI is a better agent surface than raw file surgery
 
 Obsidian CLI remains useful as a secondary tool, but not as the core persistence path.
 
@@ -224,15 +261,17 @@ Implemented and working:
 - immediate `202 Accepted`
 - background job processing
 - warm local Whisper transcription
-- local Codex knowledge shaping
-- direct markdown vault writes
+- prompt-driven local Codex scribe
+- Denx knowledge CLI with plan diff/commit flow
+- direct markdown persistence behind the CLI layer
+- document ingest for Markdown, text, and PDF inputs
 - OpenClaw iMessage notifications
 - linked project/task/note generation
 - Obsidian Headless sync configuration and background launch agent
 
 Next major improvements:
 
-- canonical long-term memory layer under the vault
-- better project/person/topic hub notes
+- richer read-only subagent orchestration
+- better project/person/topic hub maintenance heuristics
 - transcript routing so some captures are scribe-only, some are conversational, and some do both
 - deeper OpenClaw/G-Man orchestration without giving it parallel vault-write ownership

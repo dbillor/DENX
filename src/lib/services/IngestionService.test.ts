@@ -5,8 +5,6 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { AppConfig } from '../config.js';
-import type { CapturePlan } from '../agent/schemas.js';
-import type { KnowledgeAgentClient } from '../agent/types.js';
 import { VaultStore } from '../vault/VaultStore.js';
 import { IngestionService } from './IngestionService.js';
 
@@ -42,83 +40,50 @@ function createConfig(workspaceRoot: string, vaultRoot: string): AppConfig {
 }
 
 describe('IngestionService', () => {
-  it('propagates durable subject and memory updates during capture ingestion', async () => {
+  it('records provenance and forwards capture work to the unified scribe path', async () => {
     const vault = await createTempVault();
     await vault.ensureStructure();
 
-    const plan: CapturePlan = {
-      classification: 'decision',
+    const decisionNote = await vault.createNote({
       title: 'Denx routing boundary',
-      summary: 'Keep OpenClaw on orchestration and keep the scribe worker as the single writer.',
-      note_markdown: [
+      type: 'decision',
+      body: [
         '# Denx routing boundary',
         '',
         '## Decision',
         'Keep OpenClaw on orchestration and keep the scribe worker as the single writer.',
       ].join('\n'),
-      canonical_tags: ['denx', 'orchestration'],
-      aliases: [],
-      related_subjects: [
-        { title: 'Denx', relation: 'project', entity_type: 'project', create_if_missing: true },
-        { title: 'OpenClaw', relation: 'system', entity_type: 'system', create_if_missing: true },
-        { title: 'Satya', relation: 'person', entity_type: 'person', create_if_missing: true },
-        { title: 'Autonomous Task Horizon', relation: 'topic', entity_type: 'topic', create_if_missing: true },
-      ],
-      action_items: [],
-      subject_updates: [
-        {
-          title: 'Denx',
-          entity_type: 'project',
-          section: 'Operating Model',
-          markdown: '- OpenClaw owns orchestration while the scribe worker owns vault mutation.',
-        },
-        {
-          title: 'OpenClaw',
-          entity_type: 'system',
-          section: 'Role',
-          markdown: '- OpenClaw is the orchestration and messaging surface for Denx.',
-        },
-        {
-          title: 'Satya',
-          entity_type: 'person',
-          section: 'Context',
-          markdown: '- Satya is part of the executive audience for the current Denx narrative.',
-        },
-      ],
-      memory_updates: [
-        {
-          target: 'preferences',
-          section: 'Vault Stewardship',
-          markdown: '- Prefer canonical project and system notes to stay current.',
-        },
-        {
-          target: 'open-questions',
-          section: 'Orchestration',
-          markdown: '- Should G-Man eventually become the default orchestrator for Denx captures?',
-        },
-      ],
-      follow_ups: [],
+      tags: ['denx', 'orchestration'],
       status: 'decided',
-      project: 'Denx',
-      reminder_time_hint: undefined,
-      should_append_to_daily: true,
-    };
+    });
 
-    const agent: KnowledgeAgentClient = {
-      async shapeCapture() {
-        return plan;
+    const projectNote = await vault.ensureSubject({ title: 'Denx', kind: 'project' });
+    const personNote = await vault.ensureSubject({ title: 'Satya', kind: 'person' });
+    await vault.appendToMemory('preferences', 'Purpose', '- Prefer canonical notes when possible.');
+    const preferencesNote = await vault.load('_memory/preferences.md');
+
+    const assistant = {
+      async runTask() {
+        return {
+          summary: 'Keep OpenClaw on orchestration and keep the scribe worker as the single writer.',
+          diffSummary: 'Summary: Denx routing boundary',
+          warnings: [],
+          plan: {
+            summary: 'Keep OpenClaw on orchestration and keep the scribe worker as the single writer.',
+            confidence: 'high',
+            sources: [],
+            notes_considered: [],
+            commit_summary: 'Recorded routing boundary',
+            actions: [],
+          },
+          touchedNotes: [decisionNote, projectNote, personNote, preferencesNote],
+        };
       },
-      async answerAsk() {
-        throw new Error('not used');
-      },
-      async organize() {
-        throw new Error('not used');
-      },
-    };
+    } as const;
 
     const ingestion = new IngestionService(
       vault,
-      agent,
+      assistant as never,
       null,
       {
         async notifyCaptureProcessed() {},
@@ -128,26 +93,18 @@ describe('IngestionService', () => {
 
     const result = await ingestion.ingestCapture({
       transcriptText:
-        'OpenClaw should orchestrate Denx, the scribe worker should own vault writes, Satya is an audience member, and canonical notes should stay current.',
+        'OpenClaw should orchestrate Denx, the scribe worker should own vault writes, and Satya is part of the audience.',
       sourceKind: 'text',
       device: 'test',
       capturedAt: '2026-03-22T12:00:00-07:00',
     });
 
-    expect(result.primaryNote.path).toBe('decisions/denx-routing-boundary.md');
-    expect(result.subjectNotes.length).toBeGreaterThanOrEqual(3);
-    expect(result.memoryNotes.length).toBe(2);
+    expect(result.primaryNote?.path).toBe('decisions/denx-routing-boundary.md');
+    expect(result.subjectNotes.length).toBeGreaterThanOrEqual(1);
+    expect(result.subjectNotes.some((note) => note.path.startsWith('_memory/people/'))).toBe(true);
+    expect(result.memoryNotes.some((note) => note.path === '_memory/preferences.md')).toBe(true);
 
-    const denxProject = await vault.load('projects/denx.md');
-    const openclawSystem = await vault.load('_memory/systems/openclaw.md');
-    const satyaPerson = await vault.load('_memory/people/satya.md');
-    const preferences = await vault.load('_memory/preferences.md');
-    const openQuestions = await vault.load('_memory/open-questions.md');
-
-    expect(denxProject.content).toContain('OpenClaw owns orchestration');
-    expect(openclawSystem.content).toContain('orchestration and messaging surface for Denx');
-    expect(satyaPerson.content).toContain('executive audience');
-    expect(preferences.content).toContain('Prefer canonical project and system notes to stay current');
-    expect(openQuestions.content).toContain('default orchestrator for Denx captures');
+    const transcript = await vault.load(result.transcriptPath);
+    expect(transcript.content).toContain('OpenClaw should orchestrate Denx');
   });
 });

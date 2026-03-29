@@ -7,12 +7,13 @@ export const captureClassifications = [
 ] as const;
 
 export type CaptureClassification = (typeof captureClassifications)[number];
+export type WritableNoteType = CaptureClassification | 'reference';
 
 export const entityKinds = ['note', 'project', 'person', 'system', 'topic'] as const;
 
 export type EntityKind = (typeof entityKinds)[number];
 
-export type SourceKind = 'voice' | 'text' | 'ask' | 'organize';
+export type SourceKind = 'voice' | 'text' | 'ask' | 'organize' | 'document' | 'task' | 'maintenance';
 
 export type VaultNoteType = CaptureClassification | 'daily' | 'reference';
 
@@ -22,6 +23,8 @@ export interface CaptureSourceMetadata {
   captureId?: string;
   audioPath?: string;
   transcriptPath?: string;
+  documentPath?: string;
+  extractionPath?: string;
   device?: string;
   originalText?: string;
   query?: string;
@@ -42,6 +45,8 @@ export interface VaultNoteFrontmatter {
   source_capture_id?: string;
   source_audio?: string;
   source_transcript?: string;
+  source_document?: string;
+  source_extraction?: string;
   source_query?: string;
   generated_by: 'voice-kb' | 'denx';
 }
@@ -87,7 +92,7 @@ export interface SearchResult extends IndexNoteSummary {
 
 export interface CreateNoteInput {
   title: string;
-  type: CaptureClassification | 'reference';
+  type: WritableNoteType;
   body: string;
   tags?: string[];
   aliases?: string[];

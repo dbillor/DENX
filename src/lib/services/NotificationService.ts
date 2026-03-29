@@ -40,7 +40,7 @@ export class NotificationService {
 
   async notifyCaptureProcessed(payload: {
     transcript: string;
-    notePath: string;
+    notePath?: string;
     taskPaths: string[];
     sourceKind: Extract<SourceKind, 'voice' | 'text'>;
   }): Promise<void> {
@@ -54,7 +54,7 @@ export class NotificationService {
         : 'Denx converted the text into knowledge.';
     const message = [
       opening,
-      `Note: ${payload.notePath}`,
+      ...(payload.notePath ? [`Note: ${payload.notePath}`] : ['Knowledge update: no primary note was created.']),
       ...(payload.taskPaths.length ? [`Tasks: ${payload.taskPaths.join(', ')}`] : []),
       `Transcript: ${payload.transcript.slice(0, 180)}`,
     ].join('\n');
