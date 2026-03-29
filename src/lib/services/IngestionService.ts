@@ -13,7 +13,7 @@ import type { CapturePlan } from '../agent/schemas.js';
 import type { KnowledgeAgentClient } from '../agent/types.js';
 import type { NotificationService } from './NotificationService.js';
 import type { AudioTranscriptionClient } from './TranscriptionService.js';
-import { VaultStore } from '../vault/VaultStore.js';
+import { VaultStore, type MemoryTarget } from '../vault/VaultStore.js';
 
 export interface CaptureRequest {
   captureId?: string;
@@ -33,6 +33,8 @@ export interface CaptureResult {
   primaryNote: VaultNoteRecord;
   taskNotes: VaultNoteRecord[];
   relatedNotes: VaultNoteRecord[];
+  subjectNotes: VaultNoteRecord[];
+  memoryNotes: VaultNoteRecord[];
   transcriptPath: string;
   audioPath?: string;
 }
@@ -173,6 +175,38 @@ export class IngestionService {
       taskNotes.push(taskNote);
     }
 
+    const subjectNotes = await this.applySubjectUpdates(
+      plan.subject_updates,
+      relatedNotes,
+      primaryNote,
+    );
+    const memoryNotes = await this.applyMemoryUpdates(plan.memory_updates, primaryNote);
+
+    if (
+      plan.project &&
+      plan.classification === 'project-update' &&
+      !plan.subject_updates.some(
+        (update) =>
+          update.entity_type === 'project' &&
+          normalizeRef(update.title) === normalizeRef(plan.project ?? ''),
+      )
+    ) {
+      const projectNote = relatedNotes.find(
+        (note) => normalizeRef(note.title) === normalizeRef(plan.project ?? ''),
+      );
+      if (projectNote) {
+        const updatedProject = await this.vault.appendToSection(
+          projectNote.path,
+          'Recent Updates',
+          [
+            `- [[${primaryNote.slug}|${primaryNote.title}]]`,
+            `  - ${plan.summary}`,
+          ].join('\n'),
+        );
+        subjectNotes.push(updatedProject);
+      }
+    }
+
     if (plan.should_append_to_daily) {
       await this.vault.appendDailyLog({
         capturedAt,
@@ -206,6 +240,8 @@ export class IngestionService {
       primaryNote,
       taskNotes,
       relatedNotes,
+      subjectNotes,
+      memoryNotes,
       transcriptPath,
       audioPath,
     };
@@ -279,6 +315,51 @@ export class IngestionService {
     return related;
   }
 
+  private async applySubjectUpdates(
+    updates: CapturePlan['subject_updates'],
+    relatedNotes: VaultNoteRecord[],
+    primaryNote: VaultNoteRecord,
+  ): Promise<VaultNoteRecord[]> {
+    const touched = new Map<string, VaultNoteRecord>();
+    const existingByTitle = new Map(
+      relatedNotes.map((note) => [normalizeRef(note.title), note]),
+    );
+
+    for (const update of updates) {
+      const key = normalizeRef(update.title);
+      const subject =
+        existingByTitle.get(key) ??
+        (await this.vault.ensureSubject({
+          title: update.title,
+          kind: update.entity_type,
+        }));
+      const markdown = this.withSourceReference(update.markdown, primaryNote);
+      const updated = await this.vault.appendToSection(subject.path, update.section, markdown);
+      touched.set(updated.path, updated);
+    }
+
+    return [...touched.values()];
+  }
+
+  private async applyMemoryUpdates(
+    updates: CapturePlan['memory_updates'],
+    primaryNote: VaultNoteRecord,
+  ): Promise<VaultNoteRecord[]> {
+    const touched = new Map<string, VaultNoteRecord>();
+
+    for (const update of updates) {
+      const markdown = this.withSourceReference(update.markdown, primaryNote);
+      const updated = await this.vault.appendToMemory(
+        update.target as MemoryTarget,
+        update.section,
+        markdown,
+      );
+      touched.set(updated.path, updated);
+    }
+
+    return [...touched.values()];
+  }
+
   private buildPrimaryBody(plan: CapturePlan): string {
     let body = stripLeadingFrontmatter(plan.note_markdown).trim();
     if (!body.startsWith('# ')) {
@@ -302,6 +383,16 @@ export class IngestionService {
     }
 
     return body;
+  }
+
+  private withSourceReference(markdown: string, primaryNote: VaultNoteRecord): string {
+    const trimmed = markdown.trim();
+    const sourceLine = `- Source note: [[${primaryNote.slug}|${primaryNote.title}]]`;
+    if (trimmed.includes(sourceLine) || trimmed.includes(primaryNote.slug)) {
+      return trimmed;
+    }
+
+    return `${trimmed}\n${sourceLine}`;
   }
 
   private buildTaskBody(

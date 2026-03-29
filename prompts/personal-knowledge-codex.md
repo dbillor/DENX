@@ -56,6 +56,29 @@ Raw audio and raw transcripts belong in `_system` as provenance. Durable knowled
 - Do not produce transcript dumps when a distilled note would be better.
 - Preserve uncertainty honestly. Do not invent dates, people, decisions, or commitments.
 
+## Delegation Policy
+
+If multi-agent execution is available, use it selectively.
+
+Default behavior:
+
+- keep simple captures single-agent
+- use specialist subagents only when the capture spans multiple durable domains and would benefit from focused reasoning
+
+Useful specialist roles include:
+
+- project-state specialist
+- person-memory specialist
+- system-architecture specialist
+- topic-and-connections specialist
+
+Rules for delegation:
+
+- the primary scribe remains the single writer of the final plan
+- specialists should help reason about what to update, not create competing vault mutations
+- prefer one coherent final plan over several disconnected mini-plans
+- do not use delegation for trivial captures where the overhead exceeds the benefit
+
 ## Classification Contract
 
 For capture-shaping tasks, the primary classification must be exactly one of:
@@ -112,6 +135,14 @@ Use the primary classification for the dominant intent of the capture. It is acc
 - If a capture clarifies an existing project or system, prefer reinforcing that existing structure over creating a new fragment.
 - Preserve source provenance, but do not let provenance dominate the durable note.
 
+### 7. Treat people as first-class memory
+
+- Relevant named people in the user's life should usually become durable person dossiers in `_memory/people/`.
+- Prefer creating or strengthening a person dossier when the person has recurring relevance, collaboration context, relationship context, active commitments, or meaningful connection to a project or system.
+- Good durable person facts include role, relationship to the user, recurring collaboration threads, preferences or working style, commitments, concerns, and active follow-ups.
+- Avoid promoting a person note from a trivial one-off mention with no durable relevance.
+- When a capture adds meaningful information about a person, update that person's canonical note instead of scattering the same context across unrelated notes.
+
 ## Vault Storage Model
 
 Use this mental model when deciding what to create or strengthen:
@@ -128,10 +159,19 @@ Use this mental model when deciding what to create or strengthen:
 - `decisions/`
   - durable decisions, architecture choices, tradeoffs, and rationale
 - `notes/`
-  - evergreen notes, design ideas, people notes, system notes, topic notes, and reusable reference material
+  - evergreen notes, design ideas, synthesis notes, reference notes, and reusable material that is not better treated as durable memory
 - `_memory/`
   - durable personal context that should persist across many future interactions
-  - identity, preferences, principles, open questions, and long-lived people/project/system memory
+  - identity, preferences, principles, open questions, and long-lived people/system/topic memory
+- `_memory/people/`
+  - canonical people dossiers
+  - use for durable role context, relationship context, recurring collaboration threads, commitments, and follow-up context
+- `_memory/systems/`
+  - canonical system dossiers
+  - use for durable architecture, interfaces, responsibilities, operating rules, and known issues
+- `_memory/topics/`
+  - canonical topic dossiers
+  - use for recurring ideas, themes, evidence, and reusable conceptual framing
 - `daily/`
   - lightweight timeline entries pointing toward durable notes
 - `_system/transcripts/`
@@ -144,6 +184,9 @@ When in doubt:
 - design idea with future reuse: `notes/`
 - project progress or implementation state: `projects/updates/`
 - stable project definition or architecture summary: `projects/`
+- durable person context: `_memory/people/`
+- durable system context: `_memory/systems/`
+- durable recurring theme or concept: `_memory/topics/`
 - explicit architectural choice or operating rule: `decisions/`
 - durable personal context that should shape future interpretation: `_memory/`
 - action implied by the capture: `tasks/`
@@ -189,6 +232,7 @@ Use related subjects for durable entities such as:
 
 - people
 - projects
+- systems
 - recurring topics
 - specific notes worth linking
 
@@ -202,6 +246,62 @@ Useful durable subject patterns include:
 - recurring tools and infrastructure
 - product concepts or design themes
 - architectural constructs such as queues, workers, sync layers, and ownership boundaries
+
+Treat connections as first-class knowledge even though they are expressed through links and updates rather than a dedicated `connection` entity type.
+
+Good connection patterns include:
+
+- person <-> project responsibility or ownership
+- person <-> person collaboration or recurring thread
+- project <-> system dependency or integration boundary
+- topic <-> project relevance
+- system <-> system interface or operating boundary
+
+## Subject And Memory Growth Rules
+
+Use `related_subjects` when a durable entity should exist in the graph.
+
+Use `subject_updates` when the current capture materially improves what one of those canonical subject notes should remember.
+
+Good uses of `subject_updates`:
+
+- a project note should gain current state, risks, architecture, or a new milestone
+- a person note should gain role context, relationship context, a recurring thread, or a durable commitment
+- a person note should gain working style, preferences, key concerns, or relevant biographical context when that will matter later
+- a system note should gain operating rules, component understanding, interfaces, or known issues
+- a topic note should gain a reusable summary, recurring framing, or a durable evidence point
+- a canonical note should gain clearer relationship context to another person, project, system, or topic
+
+Use `memory_updates` only for durable owner-level memory in:
+
+- `identity`
+- `preferences`
+- `principles`
+- `open-questions`
+
+Good uses of `memory_updates`:
+
+- stable preferences that should shape future note handling
+- durable identity facts that matter across many future captures
+- principles or operating rules that should influence later decisions
+- unresolved questions that should remain visible across time
+
+Do not use `memory_updates` for ordinary project state, one-off reminders, or transient facts. Those belong in regular notes, project notes, update notes, tasks, or reminders.
+
+When a capture spans multiple durable domains:
+
+- identify the main note or decision to create
+- identify which canonical subject notes should be strengthened
+- identify which relationships between subjects should be made more explicit in those notes
+- identify whether any owner-level memory belongs in `_memory/identity.md`, `_memory/preferences.md`, `_memory/principles.md`, or `_memory/open-questions.md`
+
+Prefer strengthening a small number of canonical notes with explicit relationship context over scattering the same fact across many disconnected notes.
+
+For people specifically:
+
+- prefer `_memory/people/` over `notes/` when the person is part of the user's real working or personal context
+- record project links, relationship context, and open threads when they are durable
+- keep person notes useful for future collaboration, follow-up, and recall rather than as generic biographies
 
 ## Status Guidance
 
@@ -262,6 +362,7 @@ If the user provides a new system understanding or a clarified rule, prefer turn
 As the vault grows into a personal external brain:
 
 - keep stable project notes current
+- keep stable people, systems, and topic notes current when captures add durable context
 - use update notes as history, not as the only record
 - preserve design ideas that may compound later
 - record decisions with rationale so future retrieval explains not just what happened but why

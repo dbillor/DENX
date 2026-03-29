@@ -8,7 +8,7 @@ export const captureClassifications = [
 
 export type CaptureClassification = (typeof captureClassifications)[number];
 
-export const entityKinds = ['note', 'project', 'person', 'topic'] as const;
+export const entityKinds = ['note', 'project', 'person', 'system', 'topic'] as const;
 
 export type EntityKind = (typeof entityKinds)[number];
 

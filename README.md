@@ -27,6 +27,8 @@ The default `.gitignore` is configured so those local assets stay off GitHub.
 - Uses a high-agency agent to classify each input as a `note`, `task`, `decision`, `reminder`, or `project-update`.
 - Writes durable markdown into an Obsidian-style vault instead of dumping raw transcripts into one folder.
 - Creates links, tags, related notes, backlinks, daily-log entries, and follow-up task notes automatically.
+- Can strengthen canonical notes for people, projects, systems, and topics when a capture adds durable context.
+- Can append durable owner-level memory into `_memory/` for identity, preferences, principles, and open questions.
 - Sends iMessage receipt/completion/failure notifications through OpenClaw.
 - Exposes a CLI for capture, search, natural-language ask/update, and organization passes.
 
@@ -69,9 +71,9 @@ Important rule from Obsidian's docs:
 
 Setup guide:
 
-- [docs/obsidian-sync.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/obsidian-sync.md)
-- [docs/system-design.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/system-design.md)
-- [docs/agent-storage-policy.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/agent-storage-policy.md)
+- [docs/obsidian-sync.md](docs/obsidian-sync.md)
+- [docs/system-design.md](docs/system-design.md)
+- [docs/agent-storage-policy.md](docs/agent-storage-policy.md)
 
 ## Architecture
 
@@ -204,17 +206,17 @@ flowchart LR
 
 ## iPhone Shortcut
 
-Full setup guide: [docs/iphone-shortcut.md](/Users/dbillorgmail.com/Documents/personal%20operating%20system/docs/iphone-shortcut.md)
+Full setup guide: [docs/iphone-shortcut.md](docs/iphone-shortcut.md)
 
-Local Codex architecture and prompt: [docs/local-codex-assistant.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/local-codex-assistant.md)
+Local Codex architecture and prompt: [docs/local-codex-assistant.md](docs/local-codex-assistant.md)
 
-OpenClaw / G-Man integration notes: [docs/openclaw-integration.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/openclaw-integration.md)
+OpenClaw / G-Man integration notes: [docs/openclaw-integration.md](docs/openclaw-integration.md)
 
-Obsidian Sync / always-online setup: [docs/obsidian-sync.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/obsidian-sync.md)
+Obsidian Sync / always-online setup: [docs/obsidian-sync.md](docs/obsidian-sync.md)
 
-Full architecture record: [docs/system-design.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/system-design.md)
+Full architecture record: [docs/system-design.md](docs/system-design.md)
 
-Agent storage policy: [docs/agent-storage-policy.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/agent-storage-policy.md)
+Agent storage policy: [docs/agent-storage-policy.md](docs/agent-storage-policy.md)
 
 The Shortcut should:
 
@@ -224,6 +226,48 @@ The Shortcut should:
 4. Optionally include `capturedAt` and `device`.
 5. During setup, optionally show the accepted JSON response.
 6. For production Action Button use, remove `Quick Look` and rely on OpenClaw iMessage updates instead.
+
+## 1-Button iPhone Scribe Setup
+
+The intended production UX is:
+
+- press the iPhone Action Button
+- record a short memo
+- upload the audio directly to Denx on your Mac
+- let Denx queue the job immediately
+- receive iMessage receipt/completion updates from OpenClaw
+
+Use this Shortcut shape:
+
+1. `Record Audio`
+   - Quality: High
+   - Stop Listening: `On Tap` or the least-interactive stop mode your iPhone exposes
+2. `Current Date`
+3. Optional: `Format Date`
+4. `Get Contents of URL`
+   - URL: `http://YOUR-MAC-IP-OR-TAILSCALE-HOST:8787/api/captures/voice`
+   - Method: `POST`
+   - Request Body: `File`
+   - File: `Recorded Audio`
+5. Add headers:
+   - `Authorization: Bearer YOUR_CAPTURE_API_TOKEN`
+   - `X-Device: iPhone Action Button`
+   - `X-Captured-At: <Current Date or formatted date>`
+   - `X-File-Name: capture.m4a`
+6. Optional during setup only: `Quick Look`
+
+Then bind it on iPhone:
+
+1. `Settings`
+2. `Action Button`
+3. Choose `Shortcut`
+4. Select your Denx voice-capture shortcut
+
+For anywhere access:
+
+- install Tailscale on the Mac and iPhone
+- sign into the same Tailscale account
+- swap the Shortcut URL from local LAN IP to the Mac's Tailscale IP or MagicDNS hostname
 
 ## OpenClaw / G-Man Direction
 

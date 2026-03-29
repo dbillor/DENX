@@ -4,7 +4,7 @@ This document is the source-of-truth design record for Denx, the current local-f
 
 Related agent behavior policy:
 
-- [docs/agent-storage-policy.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/agent-storage-policy.md)
+- [docs/agent-storage-policy.md](agent-storage-policy.md)
 
 ## Goal
 
@@ -16,7 +16,7 @@ The implemented system is:
 
 `iPhone Shortcut -> HTTP capture endpoint -> background queue -> warm Whisper worker -> local Codex knowledge agent -> markdown vault -> OpenClaw notifications -> Obsidian Sync`
 
-This is running locally on the Mac and writes directly into the Obsidian-compatible vault at [`vault/`](/Users/dbillorgmail.com/Documents/personal operating system/vault).
+This is running locally on the Mac and writes directly into the Obsidian-compatible vault at `vault/`.
 
 ## Design Principles
 
@@ -38,30 +38,30 @@ This is running locally on the Mac and writes directly into the Obsidian-compati
 
 ### Capture Server
 
-- Implemented in [`src/server/app.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/server/app.ts).
+- Implemented in [`src/server/app.ts`](../src/server/app.ts).
 - Accepts multipart form uploads and raw file uploads.
 - Returns `202 Accepted` immediately.
 - Exposes capture status for asynchronous processing.
 
 ### Background Queue
 
-- Implemented in [`src/lib/services/CaptureQueueService.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/lib/services/CaptureQueueService.ts).
+- Implemented in [`src/lib/services/CaptureQueueService.ts`](../src/lib/services/CaptureQueueService.ts).
 - Decouples the HTTP request from heavy processing.
 - Sends immediate receipt notifications.
 - Runs transcription and vault updates off the request path.
 
 ### Transcription Layer
 
-- Implemented in [`src/lib/services/LocalWhisperTranscriptionService.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/lib/services/LocalWhisperTranscriptionService.ts).
-- Backed by [`scripts/transcribe_local_worker.py`](/Users/dbillorgmail.com/Documents/personal operating system/scripts/transcribe_local_worker.py).
+- Implemented in [`src/lib/services/LocalWhisperTranscriptionService.ts`](../src/lib/services/LocalWhisperTranscriptionService.ts).
+- Backed by [`scripts/transcribe_local_worker.py`](../scripts/transcribe_local_worker.py).
 - Uses `faster-whisper` with `large-v3`.
 - Keeps the model warm in memory for repeated use.
 - Runs locally on the Mac rather than on the phone.
 
 ### Knowledge Agent
 
-- Implemented through local Codex CLI in [`src/lib/agent/CodexCliAgent.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/lib/agent/CodexCliAgent.ts).
-- Guided by [`prompts/personal-knowledge-codex.md`](/Users/dbillorgmail.com/Documents/personal operating system/prompts/personal-knowledge-codex.md).
+- Implemented through local Codex CLI in [`src/lib/agent/CodexCliAgent.ts`](../src/lib/agent/CodexCliAgent.ts).
+- Guided by [`prompts/personal-knowledge-codex.md`](../prompts/personal-knowledge-codex.md).
 - Interprets captures as one of:
   - `note`
   - `task`
@@ -72,14 +72,14 @@ This is running locally on the Mac and writes directly into the Obsidian-compati
 
 ### Vault Writer
 
-- Implemented primarily in [`src/lib/services/IngestionService.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/lib/services/IngestionService.ts) and [`src/lib/vault/VaultStore.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/lib/vault/VaultStore.ts).
+- Implemented primarily in [`src/lib/services/IngestionService.ts`](../src/lib/services/IngestionService.ts) and [`src/lib/vault/VaultStore.ts`](../src/lib/vault/VaultStore.ts).
 - Writes markdown directly to disk.
 - Maintains frontmatter, tags, related-note sections, backlinks, daily logs, and transcript references.
 - Keeps `_system/transcripts/` and `_system/audio/` as machine-facing provenance, not the main knowledge graph.
 
 ### OpenClaw / G-Man
 
-- Currently used for outbound iMessage notifications through [`src/lib/services/NotificationService.ts`](/Users/dbillorgmail.com/Documents/personal operating system/src/lib/services/NotificationService.ts).
+- Currently used for outbound iMessage notifications through [`src/lib/services/NotificationService.ts`](../src/lib/services/NotificationService.ts).
 - Receives:
   - receipt notifications
   - completion notifications
@@ -91,9 +91,9 @@ This is running locally on the Mac and writes directly into the Obsidian-compati
 - Uses Obsidian Headless (`ob`) on this Mac.
 - Syncs the vault to the remote Obsidian Sync vault `Personal Operating System`.
 - Runs continuously in the background using:
-  - [`scripts/obsidian-sync-continuous.sh`](/Users/dbillorgmail.com/Documents/personal operating system/scripts/obsidian-sync-continuous.sh)
-  - [`scripts/install-obsidian-sync-launchagent.sh`](/Users/dbillorgmail.com/Documents/personal operating system/scripts/install-obsidian-sync-launchagent.sh)
-  - [`launchd/com.dbillor.voice-kb.obsidian-headless-sync.plist`](/Users/dbillorgmail.com/Documents/personal operating system/launchd/com.dbillor.voice-kb.obsidian-headless-sync.plist)
+  - [`scripts/obsidian-sync-continuous.sh`](../scripts/obsidian-sync-continuous.sh)
+  - [`scripts/install-obsidian-sync-launchagent.sh`](../scripts/install-obsidian-sync-launchagent.sh)
+  - [`launchd/com.dbillor.voice-kb.obsidian-headless-sync.plist`](../launchd/com.dbillor.voice-kb.obsidian-headless-sync.plist)
 
 ## End-to-End Flow
 
@@ -143,6 +143,11 @@ Each durable note includes:
 - source transcript reference
 - source audio reference when applicable
 
+In addition to the primary note, the capture pipeline can now:
+
+- strengthen related canonical notes for people, projects, systems, and topics
+- append durable owner-level context into `_memory/` when the capture reveals stable identity, preference, principle, or open-question information
+
 ## Agent Storage Policy
 
 The knowledge agent is now explicitly instructed to:
@@ -155,7 +160,7 @@ The knowledge agent is now explicitly instructed to:
 
 Full policy:
 
-- [docs/agent-storage-policy.md](/Users/dbillorgmail.com/Documents/personal operating system/docs/agent-storage-policy.md)
+- [docs/agent-storage-policy.md](agent-storage-policy.md)
 
 ## Why Direct File Writes Instead Of Obsidian CLI
 

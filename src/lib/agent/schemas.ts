@@ -8,7 +8,7 @@ export const classificationSchema = z.enum([
   'project-update',
 ]);
 
-export const entityTypeSchema = z.enum(['note', 'project', 'person', 'topic']);
+export const entityTypeSchema = z.enum(['note', 'project', 'person', 'system', 'topic']);
 
 export const relatedSubjectSchema = z.object({
   title: z.string().min(1).max(120),
@@ -24,6 +24,26 @@ export const actionItemSchema = z.object({
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
 });
 
+export const subjectUpdateSchema = z.object({
+  title: z.string().min(1).max(120),
+  entity_type: entityTypeSchema.default('note'),
+  section: z.string().min(1).max(80),
+  markdown: z.string().min(1).max(2400),
+});
+
+export const memoryTargetSchema = z.enum([
+  'identity',
+  'preferences',
+  'principles',
+  'open-questions',
+]);
+
+export const memoryUpdateSchema = z.object({
+  target: memoryTargetSchema,
+  section: z.string().min(1).max(80),
+  markdown: z.string().min(1).max(2400),
+});
+
 export const capturePlanSchema = z.object({
   classification: classificationSchema,
   title: z.string().min(3).max(120),
@@ -33,6 +53,8 @@ export const capturePlanSchema = z.object({
   aliases: z.array(z.string().min(1).max(120)).max(6).default([]),
   related_subjects: z.array(relatedSubjectSchema).max(8).default([]),
   action_items: z.array(actionItemSchema).max(8).default([]),
+  subject_updates: z.array(subjectUpdateSchema).max(10).default([]),
+  memory_updates: z.array(memoryUpdateSchema).max(6).default([]),
   follow_ups: z.array(z.string().min(1).max(140)).max(5).default([]),
   status: z.string().max(40).optional(),
   project: z.string().max(120).optional(),
@@ -99,4 +121,3 @@ export type CapturePlan = z.infer<typeof capturePlanSchema>;
 export type AskPlan = z.infer<typeof askPlanSchema>;
 export type OrganizePlan = z.infer<typeof organizePlanSchema>;
 export type AskAction = z.infer<typeof askActionSchema>;
-

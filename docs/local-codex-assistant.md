@@ -101,7 +101,7 @@ Keep it simple:
 
 Use this prompt for the local Codex agent:
 
-[personal-knowledge-codex.md](/Users/dbillorgmail.com/Documents/personal operating system/prompts/personal-knowledge-codex.md)
+[personal-knowledge-codex.md](../prompts/personal-knowledge-codex.md)
 
 ## Recommended Commands
 

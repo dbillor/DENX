@@ -91,10 +91,31 @@ When information repeats or compounds, the agent should promote it into stronger
 Examples:
 
 - repeated project state -> strengthen the canonical project note
+- repeated people context -> strengthen the canonical person memory note
+- repeated system architecture or operating rules -> strengthen the canonical system memory note
+- repeated durable topic framing -> strengthen the canonical topic note
 - major implementation milestone -> log a project update
 - clarified operating rule -> record a decision
 - recurring assistant/tool/system identity -> create or update a durable reference note
 - design direction with future reuse -> create or enrich an evergreen note
+
+## Capture Pipeline Growth
+
+The capture pipeline should not only create a primary note. When the current capture materially improves a durable subject, the agent should also update the relevant canonical note for:
+
+- people
+- projects
+- systems
+- topics
+
+When the capture reveals stable owner-level context, the agent may also append to `_memory/`:
+
+- `identity.md`
+- `preferences.md`
+- `principles.md`
+- `open-questions.md`
+
+This should happen only for durable context, not for routine project chatter or transient details.
 
 ## Architecture And System Work
 

@@ -46,9 +46,9 @@ Installed locally:
 
 Helper files in this repository:
 
-- continuous sync runner: [obsidian-sync-continuous.sh](/Users/dbillorgmail.com/Documents/personal operating system/scripts/obsidian-sync-continuous.sh)
-- launch agent installer: [install-obsidian-sync-launchagent.sh](/Users/dbillorgmail.com/Documents/personal operating system/scripts/install-obsidian-sync-launchagent.sh)
-- launch agent plist: [com.dbillor.voice-kb.obsidian-headless-sync.plist](/Users/dbillorgmail.com/Documents/personal operating system/launchd/com.dbillor.voice-kb.obsidian-headless-sync.plist)
+- continuous sync runner: [obsidian-sync-continuous.sh](../scripts/obsidian-sync-continuous.sh)
+- launch agent installer: [install-obsidian-sync-launchagent.sh](../scripts/install-obsidian-sync-launchagent.sh)
+- launch agent plist: [com.dbillor.voice-kb.obsidian-headless-sync.plist](../launchd/com.dbillor.voice-kb.obsidian-headless-sync.plist)
 
 ## One-Time Setup
 
@@ -75,20 +75,20 @@ ob sync-create-remote --name "Personal Operating System" --encryption e2ee
 ```bash
 ob sync-setup \
   --vault "Personal Operating System" \
-  --path "/Users/dbillorgmail.com/Documents/personal operating system/vault" \
-  --device-name "Mac Studio Voice KB"
+  --path "./vault" \
+  --device-name "Denx Mac"
 ```
 
 4. Run a one-time sync:
 
 ```bash
-ob sync --path "/Users/dbillorgmail.com/Documents/personal operating system/vault"
+ob sync --path "./vault"
 ```
 
 5. Install the background sync agent:
 
 ```bash
-/Users/dbillorgmail.com/Documents/personal operating system/scripts/install-obsidian-sync-launchagent.sh
+./scripts/install-obsidian-sync-launchagent.sh
 ```
 
 ## Useful Commands
@@ -96,13 +96,13 @@ ob sync --path "/Users/dbillorgmail.com/Documents/personal operating system/vaul
 Show sync status:
 
 ```bash
-ob sync-status --path "/Users/dbillorgmail.com/Documents/personal operating system/vault"
+ob sync-status --path "./vault"
 ```
 
 Run continuously in the foreground:
 
 ```bash
-/Users/dbillorgmail.com/Documents/personal operating system/scripts/obsidian-sync-continuous.sh
+./scripts/obsidian-sync-continuous.sh
 ```
 
 ## Access Model

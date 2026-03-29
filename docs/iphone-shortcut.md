@@ -153,6 +153,7 @@ The status endpoint or debug response returns JSON like:
 - Add it to the Action Button if your iPhone supports one.
 - Turn on `Show in Share Sheet` only if you also want to send existing audio files through the same pipeline.
 - Once the flow is stable, remove `Quick Look` so the Action Button acts like a silent fire-and-forget capture.
+- The production mental model should be: one button to start capture, no waiting for transcription on-screen, iMessage confirms receipt and completion.
 
 ## Bind It To The Action Button
 

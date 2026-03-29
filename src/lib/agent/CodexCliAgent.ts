@@ -107,6 +107,8 @@ export class CodexCliAgent implements KnowledgeAgentClient {
         'codex',
         [
           'exec',
+          '--enable',
+          'multi_agent',
           '--skip-git-repo-check',
           '--ephemeral',
           '-c',
